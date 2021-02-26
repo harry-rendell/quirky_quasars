@@ -1,0 +1,2 @@
+lc_r_*.txt contain data from SDSS, PS and ZTF. Sorted along uid then mjd.
+Photometry has had colour transformations applied.
