@@ -132,15 +132,15 @@ class analysis():
 		read_in : boolean
 		ztf : boolean
 		"""
-		#df_z = pd.read_csv('/disk1/hrb/python/data/catalogues/dr14q_uid_desig_z.csv', usecols = [0,6], index_col = 0) if we need redshift
+		#df_z = pd.read_csv('data/catalogues/dr14q_uid_desig_z.csv', usecols = [0,6], index_col = 0) if we need redshift
 		if read_in == True:
 			if len(keys) == 1:
 				if ztf == True:
-					self.df_grouped = pd.read_csv('/disk1/hrb/python/data/surveys/ztf/meta_data/ztfdr2_gb_uid_{}.csv'.format(self.band),index_col = 0) #change this to ztf/gb.csv?
+					self.df_grouped = pd.read_csv('data/surveys/ztf/meta_data/ztfdr2_gb_uid_{}.csv'.format(self.band),index_col = 0) #change this to ztf/gb.csv?
 				else:
-					self.df_grouped = pd.read_csv('/disk1/hrb/python/data/merged/qsos/meta_data/df_gb_uid_{}.csv'.format(self.band),index_col = 0)
+					self.df_grouped = pd.read_csv('data/merged/qsos/meta_data/df_gb_uid_{}.csv'.format(self.band),index_col = 0)
 			elif len(keys) == 2:
-				self.df_grouped = pd.read_csv('/disk1/hrb/python/data/merged/qsos/meta_data/df_gb_uid_cat_{}.csv'.format(self.band),index_col = [0,1])
+				self.df_grouped = pd.read_csv('data/merged/qsos/meta_data/df_gb_uid_cat_{}.csv'.format(self.band),index_col = [0,1])
 		elif read_in == False:
 			# median_mag_fn/mean_mag_fn calculate mean/median magnitude by fluxes rather than mags themselves
 			mean_mag_fn   = ('mean'  , lambda mag: -2.5*np.log10(np.mean  (10**(-(mag-8.9)/2.5))) + 8.9)
@@ -176,7 +176,7 @@ class analysis():
 		if catalogue == 'dr12_vac':
 			prop_range_all = {'Mi':(-30,-20),'mag_mean':(15,23.5),'mag_std':(0,1),'redshift':(0,5),'Lbol':(44,48),'nEdd':(-3,0.5)}
 			self.prop_range = {**prop_range_all, **prop_range_any}
-			cat = pd.read_csv('/disk1/hrb/python/data/catalogues/SDSS_DR12Q_BH_matched.csv', index_col=self.ID)
+			cat = pd.read_csv('data/catalogues/SDSS_DR12Q_BH_matched.csv', index_col=self.ID)
 			cat = cat.drop(columns='z')
 # 			cat = cat.rename(columns={'z':'redshift'});
 
@@ -289,8 +289,8 @@ class analysis():
 		m_bin_centres = (m_bin_edges[1:] + m_bin_edges[:-1])/2
 		t_bin_chunk_centres = (t_bin_chunk[1:] + t_bin_chunk[:-1])/2
 
-# 		dms_binned = np.loadtxt('/disk1/hrb/python/analysis/qsos/computed/dtdm/{}/dms_binned_{}_{}.csv'.format(key,key,read_in), delimiter = ',')
-# 		dts_binned = np.loadtxt('/disk1/hrb/python/analysis/qsos/computed/dtdm/{}/dms_binned_{}_{}.csv'.format(key,key,read_in), delimiter = ',')
+# 		dms_binned = np.loadtxt('analysis/qsos/computed/dtdm/{}/dms_binned_{}_{}.csv'.format(key,key,read_in), delimiter = ',')
+# 		dts_binned = np.loadtxt('analysis/qsos/computed/dtdm/{}/dms_binned_{}_{}.csv'.format(key,key,read_in), delimiter = ',')
 		dtdms = [np.empty((0,2))]*19
 		idxs = np.digitize(dtdm[:,0], t_bin_chunk)-1
 		for index in np.unique(idxs): #Can we vectorize this?
