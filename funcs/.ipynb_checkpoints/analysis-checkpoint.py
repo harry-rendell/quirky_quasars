@@ -13,11 +13,11 @@ def calc_moments(bins,weights):
 	return x.mean(axis=1), (z**4).mean(axis = 1) - 3
 
 class analysis():
-	def __init__(self, band, ID):
+	def __init__(self, obj, ID):
 		self.ID = ID
-		self.band = band
-		self.plt_color = {'u':'m', 'g':'g', 'r':'r','i':'k','z':'b'}[band]
-		self.plt_color_bokeh = {'u':'magenta', 'g':'green', 'r':'red','i':'black','z':'blue'}[band]
+		self.obj = obj
+		self.plt_color = {'u':'m', 'g':'g', 'r':'r','i':'k','z':'b'}
+		self.plt_color_bokeh = {'u':'magenta', 'g':'green', 'r':'red','i':'black','z':'blue'}
 		self.marker_dict = {1:'s', 2:'v', 3:'o'}
 		self.marker_dict_bokeh = {1:'square',2:'triangle',3:'circle'}
 		self.survey_dict = {1:'SDSS', 2:'PS1', 3:'ZTF'}
@@ -34,13 +34,11 @@ class analysis():
 				True to use multiprocessesing
 		catalogue_of_properties : dataframe
 		"""
+		
 		# Default to 4 cores
-		if multi_proc == True:
-			pool = Pool(4)
-			df_list = pool.map(reader, range(4))
-			self.df = pd.concat(df_list).rename(columns={'mag_ps':'mag'})
-		elif multi_proc == False:
-			self.df = pd.read_csv('data/merged/qsos/lc_{}_{}.csv'.format(self.band), index_col = self.ID, dtype = {'catalogue': np.uint8, 'mag': np.float32, 'magerr': np.float32, 'mjd': np.float64, self.ID: np.uint32})
+		pool = Pool(4)
+		df_list = pool.map(reader, range(4))
+		self.df = pd.concat(df_list).rename(columns={'mag_ps':'mag'})
 
 		# Remove objects with a single observation.
 		self.df = self.df[self.df.index.duplicated(keep=False)]
@@ -51,7 +49,7 @@ class analysis():
 		
 		self.coords = pd.read_csv('data/catalogues/dr14q_uid_desig_z.csv', index_col=self.ID, usecols=[self.ID,'ra','dec'])
 		
-		self.df = self.df.sort_index()
+# 		self.df = self.df.sort_index()
 		assert self.df.index.is_monotonic, 'Index is not sorted'
 
 	def residual(self, corrections):
@@ -79,10 +77,10 @@ class analysis():
 		self.n_qsos		   = len(self.idx_uid)
 		self.idx_cat	  = self.df['catalogue'].unique()
 
-		print('Number of qsos with lightcurves in {} band : {:,}'.format(self.band, self.n_qsos))
+		print('Number of qsos with lightcurves: {:,}'.format(self.n_qsos))
 		print('Number of datapoints in:\nSDSS: {:,}\nPS: {:,}\nZTF: {:,}'.format((self.df['catalogue']==1).sum(),
-																																						 (self.df['catalogue']==2).sum(),
-																																						 (self.df['catalogue']==3).sum()))
+																				 (self.df['catalogue']==2).sum(),
+																				 (self.df['catalogue']==3).sum()))
 		
 	def search(self, ra_dec, arcsec_threshold):
 		"""
@@ -117,7 +115,6 @@ class analysis():
 		return found
 
 			
-
 	def group(self, keys = ['uid'], read_in = True, ztf = False):
 		"""
 		Group self.df by keys and apply {'mag':['mean','std','count'], 'magerr':'mean', 'mjd': ['min', 'max', np.ptp]}
@@ -153,7 +150,9 @@ class analysis():
 			self.df_grouped = self.df_grouped.merge(self.redshifts, on=self.ID)
 		self.df_grouped['mjd_ptp_rf'] = self.df_grouped['mjd_ptp']/(1+self.df_grouped['redshift'])
 
-
+	def load_vac(self):
+		self.vac = pd.read_csv('data/catalogues/SDSS_DR12Q_BH_matched.csv', index_col=self.ID)
+	
 	def merge_with_catalogue(self,catalogue='dr12_vac', remove_outliers=True, prop_range_any = {'MBH_MgII':(6,12), 'MBH_CIV':(6,12)}):
 		"""
 		Reduce self.df to intersection of self.df and catalogue.
@@ -474,7 +473,7 @@ class analysis():
 		if save == True:
 			fig.savefig('SF_ensemble.pdf',bbox_inches='tight')
 
-	def plot_series(self,uids,catalogue=None):
+	def plot_series(self, uids, survey=None):
 		"""
 		Plot lightcurve of given objects
 
@@ -484,18 +483,30 @@ class analysis():
 				uids of objects to plot
 		catalogue : int
 				Only plot data from given survey
+		survey : 1 = SDSS, 2 = PS, 3 = ZTF
 
 		"""
-		fig, axes = plt.subplots(len(uids),1,figsize = (15,4*len(uids)))
-		if catalogue is not None:
-			self.df = self.df[self.df.catalogue == catalogue]
-		for uid, ax in zip(uids,axes.ravel()):
+		fig, axes = plt.subplots(len(uids),1,figsize = (20,3*len(uids)), sharex=True)
+		if len(uids)==1:
+			axes=[axes]
+			
+		for uid, ax in zip(uids,axes):
 			single_obj = self.df.loc[uid].sort_values('mjd')
-			ax.errorbar(single_obj.mjd,
-									single_obj.mag,
-									yerr = single_obj.magerr,
-									lw = 0.2, markersize = 2, marker = 'o', color = self.plt_color)
+			for band in 'ugriz':
+				single_band = single_obj[single_obj['filtercode']==band]
+				if survey is not None:
+					single_band = single_band[single_band['catalogue']==survey]
+				for cat in single_band['catalogue'].unique():
+					x = single_band[single_band['catalogue']==cat]
+					ax.errorbar(x['mjd'], x['mag'], yerr = x['magerr'], lw = 0.2, markersize = 3, marker = self.marker_dict[cat], label = self.survey_dict[cat]+' '+band, color = self.plt_color[band])
 			ax.invert_yaxis()
+			ax.set(xlabel='mjd', ylabel='mag')
+	# 			ax.legend(loc=)
+			ax.text(0.02, 0.9, 'uid: {}'.format(uid), transform=ax.transAxes, fontsize=10)
+		
+		plt.subplots_adjust(hspace=0)
+		
+		return fig, ax
 			
 	def plot_series_bokeh(self, uids, survey=None):
 		"""
