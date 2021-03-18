@@ -528,10 +528,12 @@ class analysis():
 			if survey is not None:
 				single_obj = single_obj[single_obj['catalogue']==survey]
 			p = figure(title='uid: {}'.format(uid), x_axis_label='mjd', y_axis_label='r mag', plot_width=1000, plot_height=400)
-			for cat in single_obj['catalogue'].unique():
-				mjd, mag = single_obj[single_obj['catalogue']==cat][['mjd','mag']].sort_values('mjd').values.T
-				p.scatter(x=mjd, y=mag, legend_label=self.survey_dict[cat], marker=self.marker_dict_bokeh[cat], color=self.plt_color_bokeh)
-				p.line   (x=mjd, y=mag, line_width=0.5, color=self.plt_color_bokeh)
+			for band in 'ugriz':
+				single_band = single_obj[single_obj['filtercode']==band]
+				for cat in single_obj['catalogue'].unique():
+					mjd, mag = single_obj[single_obj['catalogue']==cat][['mjd','mag']].sort_values('mjd').values.T
+					p.scatter(x=mjd, y=mag, legend_label=self.survey_dict[cat], marker=self.marker_dict_bokeh[cat], color=self.plt_color_bokeh[band])
+					p.line   (x=mjd, y=mag, line_width=0.5, color=self.plt_color_bokeh[band])
 			p.y_range.flipped = True
 			plots.append(p)
 
